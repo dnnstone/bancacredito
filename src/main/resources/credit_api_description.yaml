@@ -1,0 +1,179 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+  - url: http://localhost:8082
+    description: Generated server url
+paths:
+  /api/v1/clientcredit/pay:
+    post:
+      tags:
+        - credit-controller
+      operationId: payClientCredit
+      parameters:
+        - name: nCredit
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: monto
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: boolean
+        "400":
+          description: Requerimiento invalido
+          content:
+            '*/*':
+              schema:
+                type: boolean
+  /api/v1/clientcredit/charge:
+    post:
+      tags:
+        - credit-controller
+      operationId: chargeClientCredit
+      parameters:
+        - name: nCredit
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: monto
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: boolean
+  /api/v1/clientcredit:
+    get:
+      tags:
+        - credit-controller
+      operationId: fetchAllClientCredit
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClientCredit'
+  /api/v1/clientcredit/{nCredit}:
+    get:
+      tags:
+        - credit-controller
+      operationId: fetchClientCredit
+      parameters:
+        - name: nCredit
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ClientCredit'
+components:
+  schemas:
+    AccountConditions:
+      type: object
+      properties:
+        orCCCPF:
+          type: boolean
+        nmaxCAhorro:
+          type: integer
+          format: int32
+        nmaxCuentas:
+          type: integer
+          format: int32
+        nmaxCCorriente:
+          type: integer
+          format: int32
+        nmaxCPFijo:
+          type: integer
+          format: int32
+    CardCredit:
+      type: object
+      properties:
+        tipo:
+          type: string
+        ncarCredit:
+          type: string
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+        names:
+          type: string
+        typeClient:
+          $ref: '#/components/schemas/ClientType'
+        ndoc:
+          type: string
+        tdoc:
+          type: string
+    ClientCredit:
+      type: object
+      properties:
+        id:
+          type: string
+        client:
+          $ref: '#/components/schemas/Client'
+        carClient:
+          $ref: '#/components/schemas/CardCredit'
+        movements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Movement'
+        limitCredit:
+          type: number
+          format: double
+        ncredit:
+          type: string
+    ClientType:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        accountConditions:
+          $ref: '#/components/schemas/AccountConditions'
+        creditConditions:
+          $ref: '#/components/schemas/CreditConditions'
+    CreditConditions:
+      type: object
+      properties:
+        maxCredits:
+          type: integer
+          format: int32
+    Movement:
+      type: object
+      properties:
+        type:
+          type: string
+        amount:
+          type: number
+          format: double
+        date:
+          type: string
+          format: date-time

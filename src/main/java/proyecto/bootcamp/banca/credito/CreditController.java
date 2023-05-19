@@ -2,6 +2,7 @@ package proyecto.bootcamp.banca.credito;
 
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import proyecto.bootcamp.banca.credito.model.Client;
 import proyecto.bootcamp.banca.credito.model.ClientCredit;
 import proyecto.bootcamp.banca.credito.services.CreditService;
 
@@ -32,5 +33,9 @@ public class CreditController {
     public Boolean  chargeClientCredit( @RequestParam("nCredit") String nCredit ,
                                              @RequestParam("monto") Double amount){
         return creditService.addCharge(nCredit, amount);
+    }
+    @GetMapping("/testMs")
+    public Client test(){
+        return creditService.testMicroservicio();
     }
 }

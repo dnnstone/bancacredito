@@ -9,6 +9,7 @@ import proyecto.bootcamp.banca.credito.repository.*;
 
 import java.util.ArrayList;
 
+
 @SpringBootApplication
 public class CreditoApplication {
 
@@ -19,25 +20,26 @@ public class CreditoApplication {
 	CommandLineRunner runner(AccountTypeRepository accountRepository
 			, ClientTypeRepository repository
 			, ClientRepository clientRepository
+			, ClientAccountRepository clienteAccountRepository
 			, ClientCreditRepository clientCreditRepository){
 		return args->{
-
-//			Exclusivos de Clientes
-			AccountConditions personal = new AccountConditions(2,1,1,1,true);
-			AccountConditions empresarial= new AccountConditions(-1,0,-1,0,false);
-			CreditConditions cpersonal= new CreditConditions(1);
-			CreditConditions cempresarial= new CreditConditions(-1);
-
-			ClientType clientTypePersonal= new ClientType("Personal",personal,cpersonal);
-			ClientType clientTypeEmpresarial= new ClientType("Empresarial",empresarial,cempresarial);
-			repository.insert(clientTypePersonal);
-			repository.insert(clientTypeEmpresarial);
-
-			Client clientePersonal=new Client("12121212","DNI","Victor Yeray",clientTypePersonal);
-			Client clienteEmpresarial=new Client("201989898989","RUC","Silvy Company",clientTypeEmpresarial);
-			clientRepository.insert(clientePersonal);
-			clientRepository.insert(clienteEmpresarial);
-
+//
+////			Exclusivos de Clientes
+//			AccountConditions personal = new AccountConditions(2,1,1,1,true);
+//			AccountConditions empresarial= new AccountConditions(-1,0,-1,0,false);
+//			CreditConditions cpersonal= new CreditConditions(1);
+//			CreditConditions cempresarial= new CreditConditions(-1);
+//
+//			ClientType clientTypePersonal= new ClientType("Personal",personal,cpersonal);
+//			ClientType clientTypeEmpresarial= new ClientType("Empresarial",empresarial,cempresarial);
+//			repository.insert(clientTypePersonal);
+//			repository.insert(clientTypeEmpresarial);
+//
+//			Client clientePersonal=new Client("12121212","DNI","Victor Yeray",clientTypePersonal);
+//			Client clienteEmpresarial=new Client("201989898989","RUC","Silvy Company",clientTypeEmpresarial);
+//			clientRepository.insert(clientePersonal);
+//			clientRepository.insert(clienteEmpresarial);
+//
 ////			Exclusivos para cuenta
 //			Conditions ahorros= new Conditions(0,30,0,"-","-");
 //			Conditions corriente= new Conditions(10,-1,0,"1+","0+");
@@ -57,15 +59,15 @@ public class CreditoApplication {
 //			clienteAccountRepository.insert(ca1);
 //			clienteAccountRepository.insert(ca2);
 //			clienteAccountRepository.insert(ca3);
-
-//			Exclusivo para Credito
-			CardCredit ccPersona= new CardCredit("12121212","Personal");
-			CardCredit ccEmpresearial= new CardCredit("98989898","Empresarial");
-			ClientCredit cc1= new ClientCredit("0022-11111-222222",clientePersonal,ccPersona,new ArrayList<>(),3000.00);
-			ClientCredit cc2= new ClientCredit("0022-99999-888888",clienteEmpresarial,ccPersona,new ArrayList<>(),10000.00);
-			clientCreditRepository.insert(cc1);
-			clientCreditRepository.insert(cc2);
-			System.out.println("ejecuté repositorio credito");
+//
+//			//Exclusivo para Credito
+//			CardCredit ccPersona= new CardCredit("12121212","Personal");
+//			CardCredit ccEmpresearial= new CardCredit("98989898","Empresarial");
+//			ClientCredit cc1= new ClientCredit("0022-11111-222222",clientePersonal,ccPersona,new ArrayList<>(),3000.00);
+//			ClientCredit cc2= new ClientCredit("0022-99999-888888",clienteEmpresarial,ccPersona,new ArrayList<>(),10000.00);
+//			clientCreditRepository.insert(cc1);
+//			clientCreditRepository.insert(cc2);
+//			System.out.println("ejecuté repositorio credito");
 		};
 	}
 
