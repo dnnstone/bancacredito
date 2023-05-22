@@ -1,117 +1,151 @@
 package proyecto.bootcamp.banca.credito.services;
 
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.MaybeOnSubscribe;
 import lombok.AllArgsConstructor;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.reactive.ClientHttpConnector;
-import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.stereotype.Service;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
-import org.springframework.web.reactive.function.client.ExchangeFunction;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriBuilderFactory;
-import proyecto.bootcamp.banca.credito.bean.ApiCliente;
 import proyecto.bootcamp.banca.credito.model.Client;
 import proyecto.bootcamp.banca.credito.model.ClientCredit;
-import proyecto.bootcamp.banca.credito.model.ClientDto;
 import proyecto.bootcamp.banca.credito.model.Movement;
 import proyecto.bootcamp.banca.credito.repository.ClientCreditRepository;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiPredicate;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import reactor.adapter.rxjava.RxJava3Adapter;
+import reactor.core.publisher.Mono;
 
 @AllArgsConstructor
 @Service
 public class CreditService {
     private final ClientCreditRepository clientCreditRepository;
-    private final MongoTemplate mongoTemplate;
-
+    @Autowired
+    private final ReactiveMongoTemplate mongoTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(CreditService.class);
     @Autowired
     private Environment env;
 
 
 
-    public List<ClientCredit> getAllClientCredit(){
-        return clientCreditRepository.findAll();
+    public Flowable<ClientCredit> getAllClientCredit(){
+        return clientCreditRepository.findAll()
+                .as(RxJava3Adapter::fluxToFlowable);
     }
 
 //Probamos el micro de Clientes
     public Client testMicroservicio(){
         RestTemplate restTemplate= new RestTemplate();
         String uri= env.getProperty("apis.cliente")+"6466d4b7d90ed775c7863f90";
-        Client cli= restTemplate.getForObject(uri, Client.class);
-        System.out.println("cli: "+ cli);
-
-        return cli;
+        return restTemplate.getForObject(uri, Client.class);
     }
 
 //    Obtenemos el Credito del Cliente con su respectivo nCredit
-    public ClientCredit getClientCredit(String nCredit) {
-
-
+    public Maybe<ClientCredit> getClientCredit(String nCredit) {
         Query query =new Query();
         query.addCriteria(Criteria.where("nCredit").is(nCredit));
-        ClientCredit clientCredit= mongoTemplate.findOne(query, ClientCredit.class);
-
-        System.out.println("api "+env.getProperty("apis.cliente")+clientCredit.getClient().getId());
-        String uri= env.getProperty("apis.cliente")+clientCredit.getClient().getId();
-        RestTemplate restTemplate= new RestTemplate();
-
-
-        Client client= restTemplate.getForObject(uri, Client.class);
-        clientCredit.setClient(client);
-
-        return clientCredit;
-
+        return mongoTemplate.
+                findOne(query, ClientCredit.class)
+                .as(RxJava3Adapter::monoToMaybe)
+                .map(client->{
+                    RestTemplate restTemplate= new RestTemplate();
+                    client.setClient(restTemplate.getForObject(env.getProperty("apis.cliente")+client.getClient().getId(), Client.class));;
+                    return client;
+                });
     }
 //    Agrega un movimiento de pago del Credito del cliente
-    public Boolean addPay(String nCredit, Double amount){
-        ClientCredit clientCredit= getClientCredit(nCredit);
-        Supplier<Boolean> suMov=()->{
-            Movement addMoviment= new Movement("pago",amount,new Date());
-            List<Movement> listMovements= clientCredit.getMovements()!=null?clientCredit.getMovements():new ArrayList<>();
-            listMovements.add(addMoviment);
-            clientCredit.setMovements(listMovements);
-            clientCredit.setLimitCredit(clientCredit.getLimitCredit()+amount);
-            clientCreditRepository.save(clientCredit);
-            return true;
-        };
-        return suMov.get();
+    public Maybe<ClientCredit> addPay(String nCredit, Double amount){
+
+        return this.getClientCredit(nCredit)
+                .map(cl->{
+                    cl.setLimitCredit(cl.getLimitCredit()+amount);
+                    List<Movement> listMov=cl.getMovements();
+                    listMov.add(new Movement("pago",amount,new Date()));
+                    cl.setMovements(listMov);
+                return cl;})
+                .to(RxJava3Adapter::maybeToMono)
+                .flatMap(clientCreditRepository::save)
+                .as(RxJava3Adapter::monoToMaybe);
+
+//        Maybe<ClientCredit> clientCredit= this.getClientCredit(nCredit);
+//        clientCredit.map(cl->{
+//            cl.setLimitCredit(cl.getLimitCredit()+amount);
+////            cl.setMovements(listMovements.blockingStream().collect(Collectors.toList()));
+//            return cl;
+//        });
+//        System.out.println("no obtengo info");
+//        clientCredit.subscribe(System.out::println);
+
+//        return false;
+//
+//        Supplier<Boolean> suMov=()->{
+//            System.out.println("que paso?");
+//            Movement addMoviment= new Movement("pago",amount,new Date());
+//            Maybe<Movement> maAddMoviment=Maybe.just(addMoviment);
+//
+////            List<Movement> listMovements= clientCredit.getMovements()!=null?clientCredit.getMovements():new ArrayList<>();
+//            Flowable<Movement> listMovements= clientCredit
+//                                    .flattenAsFlowable(c-> c.getMovements()).mergeWith(maAddMoviment);
+//            listMovements.subscribe(s->System.out.println("Movimiento: "+s));
+//
+//            clientCredit.map(cl->{
+//                cl.setLimitCredit(cl.getLimitCredit()+amount);
+//                cl.setMovements(listMovements.blockingStream().collect(Collectors.toList()));
+//                return cl;
+//            });
+//            clientCreditRepository.save(clientCredit.blockingGet());
+//
+//            clientCredit.subscribe(System.out::println);
+////            listMovements.add(addMoviment);
+////            clientCredit.setMovements(listMovements);
+////            clientCredit.setLimitCredit(clientCredit.getLimitCredit()+amount);
+////            clientCreditRepository.save(clientCredit);
+//            return true;
+//        };
+//        return suMov.get();
     }
 //    Agrega un movimiento de Carga del Credito del cliente
-    public Boolean addCharge(String nCredit, Double amount){
-        ClientCredit clientCredit= getClientCredit(nCredit);
-        BiPredicate<Double,Double> biOutdraw= (s, m)->s.compareTo(m)<0;
-        Supplier<Boolean> suMov=()->{
-            if(biOutdraw.test(clientCredit.getLimitCredit(),amount)){
-                return false;
-            }
-            else{
-                Movement addMoviment= new Movement("carga",amount,new Date());
-                List<Movement> listMovements= clientCredit.getMovements()!=null?clientCredit.getMovements():new ArrayList<>();
-                listMovements.add(addMoviment);
-                clientCredit.setMovements(listMovements);
-                clientCredit.setLimitCredit(clientCredit.getLimitCredit()-amount);
-                clientCreditRepository.save(clientCredit);
-                return true;
-            }
-        };
-        return suMov.get();
+    public Maybe<ClientCredit> addCharge(String nCredit, Double amount){
+//        ClientCredit clientCredit= getClientCredit(nCredit);
+//        BiPredicate<Double,Double> biOutdraw= (s, m)->s.compareTo(m)<0;
+//        Supplier<Boolean> suMov=()->{
+//            if(biOutdraw.test(clientCredit.getLimitCredit(),amount)){
+//                return false;
+//            }
+//            else{
+//                Movement addMoviment= new Movement("carga",amount,new Date());
+//                List<Movement> listMovements= clientCredit.getMovements()!=null?clientCredit.getMovements():new ArrayList<>();
+//                listMovements.add(addMoviment);
+//                clientCredit.setMovements(listMovements);
+//                clientCredit.setLimitCredit(clientCredit.getLimitCredit()-amount);
+//                clientCreditRepository.save(clientCredit);
+//                return true;
+//            }
+//        };
+//        return suMov.get();
+        return this.getClientCredit(nCredit)
+                .filter(cl->cl.getLimitCredit()>=amount)
+                .map(cl->{
+                    cl.setLimitCredit(cl.getLimitCredit()-amount);
+                    List<Movement> listMov=cl.getMovements();
+                    listMov.add(new Movement("carga",amount,new Date()));
+                    cl.setMovements(listMov);
+                    return cl;})
+                .to(RxJava3Adapter::maybeToMono)
+                .flatMap(clientCreditRepository::save)
+                .as(RxJava3Adapter::monoToMaybe);
     }
-
 }
