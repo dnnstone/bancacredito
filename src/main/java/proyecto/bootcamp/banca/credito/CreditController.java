@@ -21,7 +21,11 @@ public class CreditController {
 
         return creditService.getAllClientCredit();
     }
+    @GetMapping("/client/ndoc/{nDoc}")
+    public Flowable<ClientCredit> getAllClientAccountbyClientDoc(@PathVariable("nDoc") String nDoc){
 
+        return creditService.getAllClientAccountByDoc(nDoc);
+    }
     @GetMapping("/{nCredit}")
     public Maybe<ClientCredit> fetchClientCredit(@PathVariable("nCredit") String nCredit){
 

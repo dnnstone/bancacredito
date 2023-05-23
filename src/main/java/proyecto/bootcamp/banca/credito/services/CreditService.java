@@ -45,7 +45,11 @@ public class CreditService {
         return clientCreditRepository.findAll()
                 .as(RxJava3Adapter::fluxToFlowable);
     }
-
+    public Flowable<ClientCredit> getAllClientAccountByDoc(String nDoc){
+        return clientCreditRepository.findAll()
+                .filter(s->s.getClient().getNDoc().equals(nDoc))
+                .as(RxJava3Adapter::fluxToFlowable);
+    }
 //Probamos el micro de Clientes
     public Client testMicroservicio(){
         RestTemplate restTemplate= new RestTemplate();
