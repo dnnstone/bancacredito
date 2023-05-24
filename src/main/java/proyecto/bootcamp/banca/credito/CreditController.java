@@ -3,6 +3,7 @@ package proyecto.bootcamp.banca.credito;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import proyecto.bootcamp.banca.credito.model.Client;
 import proyecto.bootcamp.banca.credito.model.ClientCredit;
@@ -12,9 +13,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/v1/clientcredit")
-@AllArgsConstructor
 public class CreditController {
-    private final CreditService creditService;
+    @Autowired
+    private CreditService creditService;
 
     @GetMapping()
     public Flowable<ClientCredit> fetchAllClientCredit(){
@@ -41,9 +42,5 @@ public class CreditController {
     public Maybe<ClientCredit>  chargeClientCredit( @RequestParam("nCredit") String nCredit ,
                                              @RequestParam("monto") Double amount){
         return creditService.addCharge(nCredit, amount);
-    }
-    @GetMapping("/testMs")
-    public Client test(){
-        return creditService.testMicroservicio();
     }
 }
