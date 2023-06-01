@@ -11,12 +11,14 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import proyecto.bootcamp.banca.credito.model.Client;
-import proyecto.bootcamp.banca.credito.model.ClientCredit;
-import proyecto.bootcamp.banca.credito.model.Movement;
+import proyecto.bootcamp.banca.credito.DTO.InputCreditClientDTO;
+import proyecto.bootcamp.banca.credito.model.*;
 import proyecto.bootcamp.banca.credito.repository.ClientCreditRepository;
+import proyecto.bootcamp.banca.credito.repository.ClientRepository;
+import proyecto.bootcamp.banca.credito.utils.ClientCreditUtils;
 import reactor.adapter.rxjava.RxJava3Adapter;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -24,6 +26,8 @@ import java.util.List;
 public class CreditServiceImp implements CreditService{
     @Autowired
     private ClientCreditRepository clientCreditRepository;
+    @Autowired
+    private ClientRepository clientRepository;
     @Autowired
     private ReactiveMongoTemplate mongoTemplate;
 
@@ -135,5 +139,34 @@ public class CreditServiceImp implements CreditService{
                 .to(RxJava3Adapter::maybeToMono)
                 .flatMap(clientCreditRepository::save)
                 .as(RxJava3Adapter::monoToMaybe);
+    }
+
+    public Maybe<ClientCredit> createClientCredit(InputCreditClientDTO inputCreditClientDTO){
+
+        return Maybe.just(inputCreditClientDTO)
+                .filter(this::isAllowedNewCredit)
+                .map(s-> {
+                     Client clientTemp= clientRepository.findById(s.getClientId()).block();
+                    return new ClientCredit("0999-"+ ClientCreditUtils.createNumber(),
+                            clientTemp,
+                            new CardCredit(ClientCreditUtils.createNumber(),
+                                            clientTemp.getTypeClient().getName()
+                                            ),
+                            new ArrayList<>(),
+                            s.getCreditLimit()
+                            );
+                })
+                .to(RxJava3Adapter::maybeToMono)
+                .flatMap(clientCreditRepository::insert)
+                .as(RxJava3Adapter::monoToMaybe);
+    }
+
+    private Boolean isAllowedNewCredit(InputCreditClientDTO inputCreditClientDTO){
+        Client clientTemp=clientRepository.findById(inputCreditClientDTO.getClientId()).block();
+        CreditConditions conditions= clientTemp.getTypeClient().getCreditConditions();
+
+        return conditions.getMaxCredits().equals(-1)
+                || (this.getAllClientAccountByDoc(clientTemp.getNDoc()).count().blockingGet()<conditions.getMaxCredits());
+
     }
 }

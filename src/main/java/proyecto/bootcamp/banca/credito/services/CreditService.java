@@ -2,6 +2,7 @@ package proyecto.bootcamp.banca.credito.services;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
+import proyecto.bootcamp.banca.credito.DTO.InputCreditClientDTO;
 import proyecto.bootcamp.banca.credito.model.ClientCredit;
 
 public interface CreditService {
@@ -10,5 +11,6 @@ public interface CreditService {
     public Maybe<ClientCredit> getClientCredit(String nCredit);
     public Maybe<ClientCredit> addPay(String nCredit, Double amount);
     public Maybe<ClientCredit> addCharge(String nCredit, Double amount);
+    public Maybe<ClientCredit> createClientCredit(InputCreditClientDTO inputCreditClientDTO);
 
 }

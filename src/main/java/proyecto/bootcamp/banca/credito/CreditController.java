@@ -5,6 +5,7 @@ import io.reactivex.rxjava3.core.Maybe;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import proyecto.bootcamp.banca.credito.DTO.InputCreditClientDTO;
 import proyecto.bootcamp.banca.credito.model.Client;
 import proyecto.bootcamp.banca.credito.model.ClientCredit;
 import proyecto.bootcamp.banca.credito.services.CreditService;
@@ -42,5 +43,9 @@ public class CreditController {
     public Maybe<ClientCredit>  chargeClientCredit( @RequestParam("nCredit") String nCredit ,
                                              @RequestParam("monto") Double amount){
         return creditService.addCharge(nCredit, amount);
+    }
+    @PostMapping("/create")
+    public Maybe<ClientCredit> saveClientCredit(@RequestBody InputCreditClientDTO inputCreditClientDTO){
+        return creditService.createClientCredit(inputCreditClientDTO);
     }
 }
