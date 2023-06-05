@@ -169,4 +169,9 @@ public class CreditServiceImp implements CreditService{
                 || (this.getAllClientAccountByDoc(clientTemp.getNDoc()).count().blockingGet()<conditions.getMaxCredits());
 
     }
+
+
+    public Maybe<Void> deleteClientCreditByDoc(String ndoc){
+        return clientCreditRepository.deleteAll(this.getAllClientAccountByDoc(ndoc)).as(RxJava3Adapter::monoToMaybe);
+    }
 }

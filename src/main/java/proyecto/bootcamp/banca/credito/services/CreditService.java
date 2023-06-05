@@ -12,5 +12,6 @@ public interface CreditService {
     public Maybe<ClientCredit> addPay(String nCredit, Double amount);
     public Maybe<ClientCredit> addCharge(String nCredit, Double amount);
     public Maybe<ClientCredit> createClientCredit(InputCreditClientDTO inputCreditClientDTO);
+    public Maybe<Void> deleteClientCreditByDoc(String ndoc);
 
 }
