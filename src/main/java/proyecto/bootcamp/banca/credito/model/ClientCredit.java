@@ -18,12 +18,15 @@ public class ClientCredit {
     private List<Movement> movements;
     private Double limitCredit;
 
+    private Double saldo;
+
     public ClientCredit(String nCredit, Client client, CardCredit carClient, List<Movement> movements, Double limitCredit) {
         this.nCredit = nCredit;
         this.client = client;
         this.carClient = carClient;
         this.movements = movements;
         this.limitCredit = limitCredit;
+        this.saldo = limitCredit;
     }
 }
 

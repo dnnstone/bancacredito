@@ -21,16 +21,21 @@ public class CreditController {
     @Autowired
     private CreditService creditService;
 
+    // retorna todos los creditos
     @GetMapping()
     public Single<ResponseEntity<Flowable<ClientCredit>>> fetchAllClientCredit(){
 
         return Single.just(ResponseEntity.ok().body(creditService.getAllClientCredit()));
     }
+
+    //retorna creditos por nDocumento del cliente
     @GetMapping("/client/ndoc/{nDoc}")
     public Single<ResponseEntity<Flowable<ClientCredit>>> getAllClientAccountbyClientDoc(@PathVariable("nDoc") String nDoc){
 
         return Single.just(ResponseEntity.ok().body(creditService.getAllClientAccountByDoc(nDoc)));
     }
+
+   //retorna credito por numero de credito
     @GetMapping("/{nCredit}")
     public Single<ResponseEntity<ClientCredit>> fetchClientCredit(@PathVariable("nCredit") String nCredit){
 
@@ -40,6 +45,7 @@ public class CreditController {
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
+    //realiza un pago al credito
     @PostMapping("/pay")
     public Single<ResponseEntity<ClientCredit>> payClientCredit(@RequestParam("nCredit") String nCredit ,
                                                 @RequestParam("monto") Double amount){
@@ -48,6 +54,7 @@ public class CreditController {
                         .body(p))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
+    // realiza una carga al credito
     @PostMapping("/charge")
     public Single<ResponseEntity<ClientCredit>>  chargeClientCredit( @RequestParam("nCredit") String nCredit ,
                                              @RequestParam("monto") Double amount){
@@ -56,12 +63,23 @@ public class CreditController {
                         .body(p))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
+
+    //crea un nuevo Credito a un cliente (ClientAccount)
     @PostMapping("/create")
     public Maybe<ClientCredit> saveClientCredit(@RequestBody InputCreditClientDTO inputCreditClientDTO){
         return creditService.createClientCredit(inputCreditClientDTO);
     }
+
+    //borra un clienteCredito por ndoc
     @DeleteMapping("/delete/{ndoc}")
     public Maybe<Void> deleteClientCredit(@PathVariable("ndoc") String ndoc){
         return creditService.deleteClientCreditByDoc(ndoc);
+    }
+
+    @GetMapping("/hasDebt/{ndoc}")
+    public Single<ResponseEntity<Boolean>> hasDebt(@PathVariable("ndoc") String ndoc){
+        return creditService.hasDebt(ndoc).map(p -> ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(p));
     }
 }

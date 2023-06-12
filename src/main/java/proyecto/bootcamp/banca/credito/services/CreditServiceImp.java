@@ -2,6 +2,7 @@ package proyecto.bootcamp.banca.credito.services;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +64,7 @@ public class CreditServiceImp implements CreditService{
 
         return this.getClientCredit(nCredit)
                 .map(cl->{
-                    cl.setLimitCredit(cl.getLimitCredit()+amount);
+                    cl.setSaldo(cl.getSaldo()+amount);
                     List<Movement> listMov=cl.getMovements();
                     listMov.add(new Movement("pago",amount,new Date()));
                     cl.setMovements(listMov);
@@ -72,42 +73,6 @@ public class CreditServiceImp implements CreditService{
                 .flatMap(clientCreditRepository::save)
                 .as(RxJava3Adapter::monoToMaybe);
 
-//        Maybe<ClientCredit> clientCredit= this.getClientCredit(nCredit);
-//        clientCredit.map(cl->{
-//            cl.setLimitCredit(cl.getLimitCredit()+amount);
-////            cl.setMovements(listMovements.blockingStream().collect(Collectors.toList()));
-//            return cl;
-//        });
-//        System.out.println("no obtengo info");
-//        clientCredit.subscribe(System.out::println);
-
-//        return false;
-//
-//        Supplier<Boolean> suMov=()->{
-//            System.out.println("que paso?");
-//            Movement addMoviment= new Movement("pago",amount,new Date());
-//            Maybe<Movement> maAddMoviment=Maybe.just(addMoviment);
-//
-////            List<Movement> listMovements= clientCredit.getMovements()!=null?clientCredit.getMovements():new ArrayList<>();
-//            Flowable<Movement> listMovements= clientCredit
-//                                    .flattenAsFlowable(c-> c.getMovements()).mergeWith(maAddMoviment);
-//            listMovements.subscribe(s->System.out.println("Movimiento: "+s));
-//
-//            clientCredit.map(cl->{
-//                cl.setLimitCredit(cl.getLimitCredit()+amount);
-//                cl.setMovements(listMovements.blockingStream().collect(Collectors.toList()));
-//                return cl;
-//            });
-//            clientCreditRepository.save(clientCredit.blockingGet());
-//
-//            clientCredit.subscribe(System.out::println);
-////            listMovements.add(addMoviment);
-////            clientCredit.setMovements(listMovements);
-////            clientCredit.setLimitCredit(clientCredit.getLimitCredit()+amount);
-////            clientCreditRepository.save(clientCredit);
-//            return true;
-//        };
-//        return suMov.get();
     }
     //    Agrega un movimiento de Carga del Credito del cliente
     public Maybe<ClientCredit> addCharge(String nCredit, Double amount){
@@ -129,9 +94,9 @@ public class CreditServiceImp implements CreditService{
 //        };
 //        return suMov.get();
         return this.getClientCredit(nCredit)
-                .filter(cl->cl.getLimitCredit()>=amount)
+                .filter(cl->cl.getSaldo()>=amount)
                 .map(cl->{
-                    cl.setLimitCredit(cl.getLimitCredit()-amount);
+                    cl.setSaldo(cl.getSaldo()-amount);
                     List<Movement> listMov=cl.getMovements();
                     listMov.add(new Movement("carga",amount,new Date()));
                     cl.setMovements(listMov);
@@ -140,7 +105,7 @@ public class CreditServiceImp implements CreditService{
                 .flatMap(clientCreditRepository::save)
                 .as(RxJava3Adapter::monoToMaybe);
     }
-
+    //    Crea un nuevo cliente de Credito
     public Maybe<ClientCredit> createClientCredit(InputCreditClientDTO inputCreditClientDTO){
 
         return Maybe.just(inputCreditClientDTO)
@@ -161,17 +126,32 @@ public class CreditServiceImp implements CreditService{
                 .as(RxJava3Adapter::monoToMaybe);
     }
 
+    // Este metodo evalua si es posible añadir un nuevo credito al cliente
     private Boolean isAllowedNewCredit(InputCreditClientDTO inputCreditClientDTO){
         Client clientTemp=clientRepository.findById(inputCreditClientDTO.getClientId()).block();
         CreditConditions conditions= clientTemp.getTypeClient().getCreditConditions();
 
         return conditions.getMaxCredits().equals(-1)
-                || (this.getAllClientAccountByDoc(clientTemp.getNDoc()).count().blockingGet()<conditions.getMaxCredits());
-
+                || (this.getAllClientAccountByDoc(clientTemp.getNDoc()).count().blockingGet()<conditions.getMaxCredits())
+                && this.hasDebt(clientTemp.getNDoc()).blockingGet(); //añadiendo validacion de si tiene deudas, no podrá tener ningun producto
     }
-
-
+    //    Borra un ClienteCredit
     public Maybe<Void> deleteClientCreditByDoc(String ndoc){
         return clientCreditRepository.deleteAll(this.getAllClientAccountByDoc(ndoc)).as(RxJava3Adapter::monoToMaybe);
+    }
+
+    public Single<Boolean> hasDebt(String ndoc){
+        return this.getAllClientAccountByDoc(ndoc)
+                .map(s->{logger.info("info INICIAL clientcredit saldo: {} limite {}",s.getSaldo(),s.getLimitCredit()); return s;})
+                .filter(s->s.getSaldo().equals(s.getLimitCredit()) )
+                .firstElement()
+                .map(s->{
+                    logger.info("info clientcredit saldo: {} limite {}",s.getSaldo(),s.getLimitCredit());
+                    return true;})
+                .defaultIfEmpty(this.hasAccount(ndoc));
+    }
+
+    private Boolean hasAccount(String ndoc){
+        return this.getAllClientAccountByDoc(ndoc).count().blockingGet().equals(0L)?true:false;
     }
 }
